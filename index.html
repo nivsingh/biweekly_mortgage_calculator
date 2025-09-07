@@ -3,226 +3,634 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mortgage and Biweekly Payoff Calculator</title>
+  <title>Smart Mortgage & Biweekly Payoff Calculator</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f9fafb; color: #222; margin: 0; padding: 0; }
-    header { padding: 20px; text-align: center; }
-    h1 { font-size: 26px; margin-bottom: 8px; }
-    p { color: #555; }
-    .container { display: flex; flex-wrap: wrap; max-width: 1200px; margin: auto; padding: 20px; gap: 20px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-    .sidebar { flex: 1; min-width: 280px; }
-    .main { flex: 2; min-width: 400px; }
-    label { font-size: 14px; font-weight: 600; display: block; margin-top: 10px; }
-    input, select { padding: 6px; border-radius: 6px; border: 1px solid #ccc; width: 100%; margin-top: 4px; box-sizing: border-box; }
-    button { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: #0077cc; color: #fff; margin-top: 10px; }
-    button:hover { background: #005fa3; }
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .tile { border: 1px solid #ddd; border-radius: 12px; background: #f0f4f8; padding: 10px; text-align: center; }
-    .tile div:first-child { font-size: 13px; color: #555; }
-    .tile div:last-child { font-size: 16px; font-weight: 600; margin-top: 4px; }
-    .chart-container { position: relative; height: 300px; width: 100%; }
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary: #10b981;
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: var(--bg-main); 
+      color: var(--text-primary); 
+      margin: 0; 
+      padding: 0; 
+      line-height: 1.6;
+    }
+    
+    header { 
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      color: white;
+      padding: 2rem 1rem; 
+      text-align: center; 
+      box-shadow: var(--shadow);
+    }
+    
+    h1 { 
+      font-size: 2rem; 
+      margin: 0 0 0.5rem 0; 
+      font-weight: 700;
+    }
+    
+    header p { 
+      color: rgba(255, 255, 255, 0.9); 
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    
+    .container { 
+      display: grid; 
+      grid-template-columns: 1fr 2fr; 
+      max-width: 1400px; 
+      margin: 2rem auto; 
+      padding: 0 1rem; 
+      gap: 2rem; 
+    }
+    
+    @media (max-width: 968px) {
+      .container { 
+        grid-template-columns: 1fr; 
+        margin: 1rem auto;
+        gap: 1.5rem;
+      }
+    }
+    
+    .card { 
+      background: var(--bg-card);
+      border-radius: 16px; 
+      padding: 1.5rem; 
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card h3 { 
+      margin: 0 0 1.5rem 0; 
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    label { 
+      font-size: 0.875rem; 
+      font-weight: 500; 
+      color: var(--text-primary);
+      display: block; 
+      margin-bottom: 0.375rem; 
+    }
+    
+    input, select { 
+      padding: 0.75rem; 
+      border-radius: 8px; 
+      border: 2px solid var(--border); 
+      width: 100%; 
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      background: var(--bg-card);
+    }
+    
+    input:focus, select:focus { 
+      outline: none; 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .calc-btn { 
+      padding: 0.875rem 2rem; 
+      border-radius: 10px; 
+      border: none; 
+      cursor: pointer; 
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      color: white; 
+      margin-top: 1.5rem; 
+      font-weight: 600;
+      font-size: 1rem;
+      width: 100%;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+    
+    .calc-btn:hover { 
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .calc-btn:active {
+      transform: translateY(0);
+    }
+    
+    .summary-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 1rem; 
+      margin-bottom: 2rem;
+    }
+    
+    .tile { 
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      border-radius: 12px; 
+      padding: 1.25rem; 
+      text-align: center; 
+      border: 1px solid var(--border);
+      transition: transform 0.2s ease;
+    }
+    
+    .tile:hover {
+      transform: translateY(-2px);
+    }
+    
+    .tile-label { 
+      font-size: 0.875rem; 
+      color: var(--text-secondary); 
+      font-weight: 500;
+    }
+    
+    .tile-value { 
+      font-size: 1.375rem; 
+      font-weight: 700; 
+      margin-top: 0.5rem; 
+      color: var(--text-primary);
+    }
+    
+    .savings-tile {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-color: var(--secondary);
+    }
+    
+    .savings-tile .tile-value {
+      color: var(--secondary);
+    }
+    
+    .chart-container { 
+      position: relative; 
+      height: 400px; 
+      width: 100%; 
+      margin-top: 1rem;
+    }
+    
+    .affordability-result {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-left: 4px solid var(--primary);
+    }
+    
+    .ratio-good { border-left-color: var(--secondary); }
+    .ratio-warning { border-left-color: #f59e0b; }
+    .ratio-danger { border-left-color: #ef4444; }
+    
+    .ratio-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0.5rem 0;
+    }
+    
+    .ratio-value {
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    
+    .ratio-good .ratio-value { background: #dcfce7; color: #166534; }
+    .ratio-warning .ratio-value { background: #fef3c7; color: #92400e; }
+    .ratio-danger .ratio-value { background: #fee2e2; color: #991b1b; }
+    
+    .comparison-highlight {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+    
+    .comparison-highlight h4 {
+      margin: 0 0 0.5rem 0;
+      color: #92400e;
+      font-size: 1.125rem;
+    }
+    
+    .comparison-highlight p {
+      margin: 0;
+      color: #78350f;
+      font-weight: 500;
+    }
+    
+    .input-tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 0.5rem;
+      cursor: help;
+    }
+    
+    .tooltip-icon {
+      width: 16px;
+      height: 16px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    
+    .section-divider {
+      border: none;
+      height: 1px;
+      background: var(--border);
+      margin: 2rem 0;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Biweekly Mortgage Payoff Calculator</h1>
-    <p>Compare monthly versus biweekly, see payoff dates, affordability, and a balance over time chart.</p>
+    <h1>Smart Mortgage Calculator</h1>
+    <p>Compare monthly vs biweekly payments • See payoff dates • Check affordability • Visualize savings</p>
   </header>
-  
-  <!-- Top Banner Ad Space -->
-  <div class="ad-banner"></div>
   
   <div class="container">
     <div class="sidebar">
       <div class="card">
-        <h3>Inputs</h3>
-        <div class="compact-inputs">
-          <label>Home Price ($)<input id="homePrice" type="number" value="500000" /></label>
-          <label>Down Payment (%)<input id="downPct" type="number" value="20" /></label>
-          <label>Rate (%)<input id="rate" type="number" step="0.01" value="6.75" /></label>
-          <label>Term (Years)<input id="term" type="number" value="30" /></label>
-          <label>Property Tax (Yearly $)<input id="tax" type="number" value="6000" /></label>
-          <label>Insurance (Yearly $)<input id="ins" type="number" value="1800" /></label>
-          <label>HOA (Monthly $)<input id="hoa" type="number" value="0" /></label>
-          <label>Extra Monthly ($)<input id="extraMonthly" type="number" value="0" /></label>
+        <h3>📊 Loan Details</h3>
+        <div class="input-group">
+          <div class="input-row">
+            <div>
+              <label>Home Price ($)</label>
+              <input id="homePrice" type="number" value="500000" min="0" step="1000" />
+            </div>
+            <div>
+              <label>Down Payment (%)</label>
+              <input id="downPct" type="number" value="20" min="0" max="100" step="0.5" />
+            </div>
+          </div>
         </div>
-        <label>Extra Biweekly ($)<input id="extraBiweekly" type="number" value="0" /></label>
-        <button onclick="calculate()">Calculate</button>
+        
+        <div class="input-group">
+          <div class="input-row">
+            <div>
+              <label>Interest Rate (%)</label>
+              <input id="rate" type="number" step="0.01" value="6.75" min="0" max="20" />
+            </div>
+            <div>
+              <label>Loan Term (Years)</label>
+              <select id="term">
+                <option value="15">15 Years</option>
+                <option value="20">20 Years</option>
+                <option value="25">25 Years</option>
+                <option value="30" selected>30 Years</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <hr class="section-divider">
+        
+        <h3>🏠 Additional Costs</h3>
+        <div class="input-group">
+          <div class="input-row">
+            <div>
+              <label>Property Tax (Yearly $)</label>
+              <input id="tax" type="number" value="6000" min="0" step="100" />
+            </div>
+            <div>
+              <label>Insurance (Yearly $)</label>
+              <input id="ins" type="number" value="1800" min="0" step="50" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label>HOA Fees (Monthly $)</label>
+          <input id="hoa" type="number" value="0" min="0" step="25" />
+        </div>
+        
+        <hr class="section-divider">
+        
+        <h3>💰 Extra Payments</h3>
+        <div class="input-group">
+          <label>Extra Monthly Payment ($)</label>
+          <input id="extraMonthly" type="number" value="0" min="0" step="25" />
+        </div>
+        
+        <div class="input-group">
+          <label>Extra Biweekly Payment ($)</label>
+          <input id="extraBiweekly" type="number" value="0" min="0" step="25" />
+        </div>
+        
+        <button class="calc-btn" onclick="calculate()">🧮 Calculate Payments</button>
       </div>
+      
       <div class="card">
-        <h3>Affordability</h3>
-        <label>Gross Monthly Income ($)<input id="income" type="number" value="8000" /></label>
-        <label>Other Monthly Debts ($)<input id="debts" type="number" value="500" /></label>
-        <div id="affordResult" style="margin-top:8px; font-size:12px; color:#333;"></div>
+        <h3>💡 Affordability Check</h3>
+        <div class="input-group">
+          <label>Gross Monthly Income ($)</label>
+          <input id="income" type="number" value="8000" min="0" step="100" />
+        </div>
+        
+        <div class="input-group">
+          <label>Other Monthly Debts ($)</label>
+          <input id="debts" type="number" value="500" min="0" step="50" />
+        </div>
+        
+        <div id="affordResult" class="affordability-result"></div>
       </div>
     </div>
     
     <div class="main">
       <div class="card">
-        <h3>At a Glance</h3>
+        <h3>📈 Payment Comparison</h3>
         <div class="summary-grid">
-          <div class="tile"><div>Monthly Payment</div><div id="monthlyPay"></div></div>
-          <div class="tile"><div>Biweekly Payment</div><div id="biweeklyPay"></div></div>
-          <div class="tile"><div>Monthly Payoff Date</div><div id="monthlyDate"></div></div>
-          <div class="tile"><div>Biweekly Payoff Date</div><div id="biweeklyDate"></div></div>
-          <div class="tile"><div>Difference</div><div id="diff"></div></div>
+          <div class="tile">
+            <div class="tile-label">Monthly Payment</div>
+            <div class="tile-value" id="monthlyPay">$0</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Biweekly Payment</div>
+            <div class="tile-value" id="biweeklyPay">$0</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Monthly Payoff</div>
+            <div class="tile-value" id="monthlyDate">-</div>
+          </div>
+          <div class="tile">
+            <div class="tile-label">Biweekly Payoff</div>
+            <div class="tile-value" id="biweeklyDate">-</div>
+          </div>
+          <div class="tile savings-tile">
+            <div class="tile-label">Time Saved</div>
+            <div class="tile-value" id="timeDiff">-</div>
+          </div>
+          <div class="tile savings-tile">
+            <div class="tile-label">Interest Saved</div>
+            <div class="tile-value" id="interestSaved">$0</div>
+          </div>
+        </div>
+        
+        <div id="comparisonHighlight" class="comparison-highlight" style="display: none;">
+          <h4>💡 Smart Tip</h4>
+          <p id="comparisonText"></p>
         </div>
       </div>
       
-      <!-- Medium Rectangle Ad Space -->
-      <div class="ad-medium"></div>
-      
       <div class="card">
-        <h3>Balance Over Time</h3>
-        <select id="chartType" onchange="calculate()">
-          <option value="balance">Balance</option>
-          <option value="interest">Cumulative Interest</option>
-        </select>
+        <h3>📊 Visual Analysis</h3>
+        <div class="input-group">
+          <label>Chart View</label>
+          <select id="chartType" onchange="calculate()">
+            <option value="balance">Remaining Balance Over Time</option>
+            <option value="interest">Cumulative Interest Paid</option>
+            <option value="equity">Home Equity Growth</option>
+          </select>
+        </div>
         <div class="chart-container">
           <canvas id="chart"></canvas>
         </div>
       </div>
     </div>
-    
-    <!-- Right Sidebar Ad Space -->
-    <div class="ad-sidebar">
-      <div class="ad-vertical"></div>
-    </div>
   </div>
-<script>
-function fmt(n){return n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
-function monthlyPayment(P,r,n){if(r===0)return P/n; return P*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1)}
 
-function amortize(P, rate, years, extra=0){
-  const r=rate/100/12; 
-  const n=years*12; 
-  const base=monthlyPayment(P,r,n);
-  let bal=P, month=0, sched=[], totalInt=0, cumInt=0;
-  while(bal>0.01 && month<2000){
-    const int=bal*r; 
-    let princ=base-int+extra; 
-    if(princ>bal) princ=bal;
-    bal-=princ; 
-    totalInt+=int; 
-    cumInt+=int;
-    sched.push({idx:month+1, payment:princ+int, principal:princ, interest:int, balance:bal, cumInterest:cumInt});
+<script>
+// Utility functions
+function fmt(n) { return n.toLocaleString(undefined, {style:"currency", currency:"USD", maximumFractionDigits: 0}); }
+function fmtPct(n) { return (n * 100).toFixed(1) + "%"; }
+
+function monthlyPayment(P, r, n) {
+  if(r === 0) return P / n;
+  return P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
+
+function amortize(P, rate, years, extra = 0) {
+  const r = rate / 100 / 12;
+  const n = years * 12;
+  const base = monthlyPayment(P, r, n);
+  let bal = P, month = 0, sched = [], totalInt = 0, cumInt = 0;
+  
+  while(bal > 0.01 && month < 2000) {
+    const int = bal * r;
+    let princ = base - int + extra;
+    if(princ > bal) princ = bal;
+    bal -= princ;
+    totalInt += int;
+    cumInt += int;
+    sched.push({
+      idx: month + 1, 
+      payment: princ + int, 
+      principal: princ, 
+      interest: int, 
+      balance: bal, 
+      cumInterest: cumInt
+    });
     month++;
   }
-  return {base:base+extra, schedule:sched, totalInt};
+  return {base: base + extra, schedule: sched, totalInt};
 }
 
-function amortizeBiweekly(P, rate, years, extra=0){
-  const r=rate/100/26; 
-  const base=monthlyPayment(P, rate/100/12, years*12)/2;
-  let bal=P, idx=0, sched=[], totalInt=0, cumInt=0;
-  while(bal>0.01 && idx<2000){
-    const int=bal*r; 
-    let payment=base+extra; 
-    let princ=payment-int; 
-    if(princ>bal) princ=bal;
-    bal-=princ; 
-    totalInt+=int; 
-    cumInt+=int;
-    sched.push({idx:idx+1,payment:princ+int,principal:princ,interest:int,balance:bal,cumInterest:cumInt});
+function amortizeBiweekly(P, rate, years, extra = 0) {
+  const r = rate / 100 / 26;
+  const base = monthlyPayment(P, rate / 100 / 12, years * 12) / 2;
+  let bal = P, idx = 0, sched = [], totalInt = 0, cumInt = 0;
+  
+  while(bal > 0.01 && idx < 2000) {
+    const int = bal * r;
+    let payment = base + extra;
+    let princ = payment - int;
+    if(princ > bal) princ = bal;
+    bal -= princ;
+    totalInt += int;
+    cumInt += int;
+    sched.push({
+      idx: idx + 1,
+      payment: princ + int,
+      principal: princ,
+      interest: int,
+      balance: bal,
+      cumInterest: cumInt
+    });
     idx++;
   }
-  return {base:base+extra,schedule:sched,totalInt};
+  return {base: base + extra, schedule: sched, totalInt};
 }
 
-function diffDates(d1,d2){
-  let diff=Math.abs(d2-d1); 
-  let months=Math.floor(diff/(1000*60*60*24*30.44)); // More accurate days per month
-  let years=Math.floor(months/12); 
-  months=months%12; 
-  return years+"y "+months+"m";
+function diffDates(d1, d2) {
+  let diff = Math.abs(d2 - d1);
+  let months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44));
+  let years = Math.floor(months / 12);
+  months = months % 12;
+  return years + "y " + months + "m";
 }
 
-function calculate(){
-  const price=parseFloat(document.getElementById('homePrice').value);
-  const down=parseFloat(document.getElementById('downPct').value);
-  const rate=parseFloat(document.getElementById('rate').value);
-  const years=parseInt(document.getElementById('term').value);
-  const tax=parseFloat(document.getElementById('tax').value);
-  const ins=parseFloat(document.getElementById('ins').value);
-  const hoa=parseFloat(document.getElementById('hoa').value);
-  const extraM=parseFloat(document.getElementById('extraMonthly').value) || 0;
-  const extraB=parseFloat(document.getElementById('extraBiweekly').value) || 0;
+function calculate() {
+  const price = parseFloat(document.getElementById('homePrice').value);
+  const down = parseFloat(document.getElementById('downPct').value);
+  const rate = parseFloat(document.getElementById('rate').value);
+  const years = parseInt(document.getElementById('term').value);
+  const tax = parseFloat(document.getElementById('tax').value);
+  const ins = parseFloat(document.getElementById('ins').value);
+  const hoa = parseFloat(document.getElementById('hoa').value);
+  const extraM = parseFloat(document.getElementById('extraMonthly').value) || 0;
+  const extraB = parseFloat(document.getElementById('extraBiweekly').value) || 0;
   
-  const loan=price*(1-down/100);
-
-  const monthly=amortize(loan, rate, years, extraM);
-  const biweekly=amortizeBiweekly(loan, rate, years, extraB);
-
-  // PMI auto cancel at 80% LTV
-  let pmi=0; 
-  if(down<20){
-    const orig=loan; 
-    for(const row of monthly.schedule){ 
-      if(row.balance<=orig*0.8) break; 
-      pmi+=(orig*0.006/12); 
+  const loan = price * (1 - down / 100);
+  
+  const monthly = amortize(loan, rate, years, extraM);
+  const biweekly = amortizeBiweekly(loan, rate, years, extraB);
+  
+  // PMI calculation (auto-cancel at 80% LTV)
+  let pmi = 0;
+  if(down < 20) {
+    const orig = loan;
+    for(const row of monthly.schedule) {
+      if(row.balance <= orig * 0.8) break;
+      pmi += (orig * 0.006 / 12);
     }
   }
-
-  document.getElementById('monthlyPay').textContent=fmt(monthly.base+tax/12+ins/12+hoa+(pmi/monthly.schedule.length || 0));
-  document.getElementById('biweeklyPay').textContent=fmt(biweekly.base+tax/26+ins/26+hoa/2);
-
-  const start=new Date();
-  const mDate=new Date(start); 
-  mDate.setMonth(mDate.getMonth()+monthly.schedule.length);
-  const bDate=new Date(start); 
-  bDate.setDate(bDate.getDate()+14*biweekly.schedule.length);
   
-  document.getElementById('monthlyDate').textContent=mDate.toLocaleDateString();
-  document.getElementById('biweeklyDate').textContent=bDate.toLocaleDateString();
-  document.getElementById('diff').textContent=diffDates(mDate,bDate);
-
-  const inc=parseFloat(document.getElementById('income').value);
-  const debts=parseFloat(document.getElementById('debts').value);
-  const frontRatio=(monthly.base+tax/12+ins/12+hoa)/inc;
-  const backRatio=(monthly.base+tax/12+ins/12+hoa+debts)/inc;
-  document.getElementById('affordResult').textContent="Front-end ratio: "+(frontRatio*100).toFixed(1)+"%  |  Back-end ratio: "+(backRatio*100).toFixed(1)+"%";
-
+  // Update display
+  const monthlyTotal = monthly.base + tax/12 + ins/12 + hoa + (pmi/monthly.schedule.length || 0);
+  const biweeklyTotal = biweekly.base + tax/26 + ins/26 + hoa/2;
+  
+  document.getElementById('monthlyPay').textContent = fmt(monthlyTotal);
+  document.getElementById('biweeklyPay').textContent = fmt(biweeklyTotal);
+  
+  const start = new Date();
+  const mDate = new Date(start);
+  mDate.setMonth(mDate.getMonth() + monthly.schedule.length);
+  const bDate = new Date(start);
+  bDate.setDate(bDate.getDate() + 14 * biweekly.schedule.length);
+  
+  document.getElementById('monthlyDate').textContent = mDate.toLocaleDateString();
+  document.getElementById('biweeklyDate').textContent = bDate.toLocaleDateString();
+  document.getElementById('timeDiff').textContent = diffDates(mDate, bDate);
+  
+  const interestSavings = monthly.totalInt - biweekly.totalInt;
+  document.getElementById('interestSaved').textContent = fmt(interestSavings);
+  
+  // Show comparison highlight if significant savings
+  const highlight = document.getElementById('comparisonHighlight');
+  const highlightText = document.getElementById('comparisonText');
+  
+  if(interestSavings > 10000) {
+    highlight.style.display = 'block';
+    const timeSaved = (monthly.schedule.length - (biweekly.schedule.length * 14 / 30.44)) / 12;
+    highlightText.textContent = `By switching to biweekly payments, you could save ${fmt(interestSavings)} in interest and pay off your loan ${timeSaved.toFixed(1)} years earlier!`;
+  } else {
+    highlight.style.display = 'none';
+  }
+  
+  // Affordability analysis
+  const inc = parseFloat(document.getElementById('income').value);
+  const debts = parseFloat(document.getElementById('debts').value);
+  const frontRatio = monthlyTotal / inc;
+  const backRatio = (monthlyTotal + debts) / inc;
+  
+  const affordResult = document.getElementById('affordResult');
+  let resultClass = 'ratio-good';
+  let advice = 'Your debt ratios look healthy!';
+  
+  if(frontRatio > 0.28 || backRatio > 0.36) {
+    resultClass = 'ratio-warning';
+    advice = 'Your debt ratios are getting high. Consider a lower price range.';
+  }
+  if(frontRatio > 0.31 || backRatio > 0.43) {
+    resultClass = 'ratio-danger';
+    advice = 'Your debt ratios exceed recommended limits. This loan may be risky.';
+  }
+  
+  affordResult.className = `affordability-result ${resultClass}`;
+  affordResult.innerHTML = `
+    <div class="ratio-item">
+      <span>Housing Ratio (≤28%)</span>
+      <span class="ratio-value">${fmtPct(frontRatio)}</span>
+    </div>
+    <div class="ratio-item">
+      <span>Total Debt Ratio (≤36%)</span>
+      <span class="ratio-value">${fmtPct(backRatio)}</span>
+    </div>
+    <div style="margin-top: 0.75rem; font-weight: 500; font-size: 0.875rem;">
+      ${advice}
+    </div>
+  `;
+  
   // Chart rendering
-  const ctx=document.getElementById("chart").getContext("2d");
-  const chartType=document.getElementById("chartType").value;
+  renderChart(monthly, biweekly, price, loan);
+}
+
+function renderChart(monthly, biweekly, homePrice, loanAmount) {
+  const ctx = document.getElementById("chart").getContext("2d");
+  const chartType = document.getElementById("chartType").value;
   
-  // Create data for chart - sample every month for readability
   const maxPeriods = Math.max(monthly.schedule.length, biweekly.schedule.length);
-  const sampleEvery = Math.max(1, Math.floor(maxPeriods / 120)); // Sample to ~120 points max
+  const sampleEvery = Math.max(1, Math.floor(maxPeriods / 100));
   
   const labels = [];
   const monthlyData = [];
   const biweeklyData = [];
   
   for(let i = 0; i < maxPeriods; i += sampleEvery) {
-    labels.push(Math.floor(i / 12) + 'y');
+    labels.push(Math.floor(i / 12));
     
     if(i < monthly.schedule.length) {
       if(chartType === "balance") {
         monthlyData.push(monthly.schedule[i].balance);
-      } else {
+      } else if(chartType === "interest") {
         monthlyData.push(monthly.schedule[i].cumInterest);
+      } else { // equity
+        monthlyData.push(homePrice - monthly.schedule[i].balance);
       }
     } else {
-      monthlyData.push(0);
+      monthlyData.push(chartType === "equity" ? homePrice : 0);
     }
     
-    // Convert biweekly index to approximate monthly equivalent
     const biweeklyIndex = Math.floor(i * 26/12);
     if(biweeklyIndex < biweekly.schedule.length) {
       if(chartType === "balance") {
         biweeklyData.push(biweekly.schedule[biweeklyIndex].balance);
-      } else {
+      } else if(chartType === "interest") {
         biweeklyData.push(biweekly.schedule[biweeklyIndex].cumInterest);
+      } else { // equity
+        biweeklyData.push(homePrice - biweekly.schedule[biweeklyIndex].balance);
       }
     } else {
-      biweeklyData.push(0);
+      biweeklyData.push(chartType === "equity" ? homePrice : 0);
     }
   }
   
-  const label = chartType === "balance" ? "Remaining Balance" : "Cumulative Interest";
+  const labelMap = {
+    balance: "Remaining Balance",
+    interest: "Cumulative Interest",
+    equity: "Home Equity"
+  };
   
   if(window.chartObj) {
     window.chartObj.destroy();
@@ -234,22 +642,24 @@ function calculate(){
       labels: labels,
       datasets: [
         {
-          label: "Monthly " + label,
+          label: "Monthly " + labelMap[chartType],
           data: monthlyData,
-          borderColor: "#0077cc",
-          backgroundColor: "rgba(0, 119, 204, 0.1)",
-          tension: 0.2,
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.1)",
+          tension: 0.3,
           fill: false,
-          pointRadius: 1
+          pointRadius: 0,
+          borderWidth: 3
         },
         {
-          label: "Biweekly " + label,
+          label: "Biweekly " + labelMap[chartType],
           data: biweeklyData,
-          borderColor: "#00aa55",
-          backgroundColor: "rgba(0, 170, 85, 0.1)",
-          tension: 0.2,
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.3,
           fill: false,
-          pointRadius: 1
+          pointRadius: 0,
+          borderWidth: 3
         }
       ]
     },
@@ -258,20 +668,58 @@ function calculate(){
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'bottom'
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+            font: {
+              size: 14,
+              weight: '500'
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#2563eb',
+          borderWidth: 1,
+          cornerRadius: 8,
+          displayColors: true,
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + fmt(context.parsed.y);
+            }
+          }
         }
       },
       scales: {
         x: {
           title: {
             display: true,
-            text: 'Years'
+            text: 'Years',
+            font: {
+              size: 14,
+              weight: '500'
+            }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
           }
         },
         y: {
           title: {
             display: true,
-            text: label
+            text: labelMap[chartType],
+            font: {
+              size: 14,
+              weight: '500'
+            }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
           },
           ticks: {
             callback: function(value) {
@@ -283,14 +731,25 @@ function calculate(){
       interaction: {
         intersect: false,
         mode: 'index'
+      },
+      elements: {
+        line: {
+          tension: 0.3
+        }
       }
     }
   });
 }
 
-// Initialize calculator on page load
+// Auto-calculate when inputs change
 document.addEventListener('DOMContentLoaded', function() {
   calculate();
+  
+  // Add input listeners for real-time updates
+  const inputs = document.querySelectorAll('input, select');
+  inputs.forEach(input => {
+    input.addEventListener('input', calculate);
+  });
 });
 </script>
 </body>
