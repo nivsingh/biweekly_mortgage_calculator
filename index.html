@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mortgage and Biweekly Payoff Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9fafb; color: #222; margin: 0; padding: 0; }
+    header { padding: 20px; text-align: center; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    p { color: #555; }
+    .container { display: flex; flex-wrap: wrap; max-width: 1200px; margin: auto; padding: 20px; gap: 20px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .sidebar { flex: 1; min-width: 280px; }
+    .main { flex: 2; min-width: 400px; }
+    label { font-size: 14px; font-weight: 600; display: block; margin-top: 10px; }
+    input, select { padding: 6px; border-radius: 6px; border: 1px solid #ccc; width: 100%; margin-top: 4px; box-sizing: border-box; }
+    button { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: #0077cc; color: #fff; margin-top: 10px; }
+    button:hover { background: #005fa3; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .tile { border: 1px solid #ddd; border-radius: 12px; background: #f0f4f8; padding: 10px; text-align: center; }
+    .tile div:first-child { font-size: 13px; color: #555; }
+    .tile div:last-child { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .chart-container { position: relative; height: 300px; width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Biweekly Mortgage Payoff Calculator</h1>
+    <p>Compare monthly versus biweekly, see payoff dates, affordability, and a balance over time chart.</p>
+  </header>
+  
+  <!-- Top Banner Ad Space -->
+  <div class="ad-banner"></div>
+  
+  <div class="container">
+    <div class="sidebar">
+      <div class="card">
+        <h3>Inputs</h3>
+        <div class="compact-inputs">
+          <label>Home Price ($)<input id="homePrice" type="number" value="500000" /></label>
+          <label>Down Payment (%)<input id="downPct" type="number" value="20" /></label>
+          <label>Rate (%)<input id="rate" type="number" step="0.01" value="6.75" /></label>
+          <label>Term (Years)<input id="term" type="number" value="30" /></label>
+          <label>Property Tax (Yearly $)<input id="tax" type="number" value="6000" /></label>
+          <label>Insurance (Yearly $)<input id="ins" type="number" value="1800" /></label>
+          <label>HOA (Monthly $)<input id="hoa" type="number" value="0" /></label>
+          <label>Extra Monthly ($)<input id="extraMonthly" type="number" value="0" /></label>
+        </div>
+        <label>Extra Biweekly ($)<input id="extraBiweekly" type="number" value="0" /></label>
+        <button onclick="calculate()">Calculate</button>
+      </div>
+      <div class="card">
+        <h3>Affordability</h3>
+        <label>Gross Monthly Income ($)<input id="income" type="number" value="8000" /></label>
+        <label>Other Monthly Debts ($)<input id="debts" type="number" value="500" /></label>
+        <div id="affordResult" style="margin-top:8px; font-size:12px; color:#333;"></div>
+      </div>
+    </div>
+    
+    <div class="main">
+      <div class="card">
+        <h3>At a Glance</h3>
+        <div class="summary-grid">
+          <div class="tile"><div>Monthly Payment</div><div id="monthlyPay"></div></div>
+          <div class="tile"><div>Biweekly Payment</div><div id="biweeklyPay"></div></div>
+          <div class="tile"><div>Monthly Payoff Date</div><div id="monthlyDate"></div></div>
+          <div class="tile"><div>Biweekly Payoff Date</div><div id="biweeklyDate"></div></div>
+          <div class="tile"><div>Difference</div><div id="diff"></div></div>
+        </div>
+      </div>
+      
+      <!-- Medium Rectangle Ad Space -->
+      <div class="ad-medium"></div>
+      
+      <div class="card">
+        <h3>Balance Over Time</h3>
+        <select id="chartType" onchange="calculate()">
+          <option value="balance">Balance</option>
+          <option value="interest">Cumulative Interest</option>
+        </select>
+        <div class="chart-container">
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Sidebar Ad Space -->
+    <div class="ad-sidebar">
+      <div class="ad-vertical"></div>
+    </div>
+  </div>
+<script>
+function fmt(n){return n.toLocaleString(undefined,{style:"currency",currency:"USD"})}
+function monthlyPayment(P,r,n){if(r===0)return P/n; return P*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1)}
+
+function amortize(P, rate, years, extra=0){
+  const r=rate/100/12; 
+  const n=years*12; 
+  const base=monthlyPayment(P,r,n);
+  let bal=P, month=0, sched=[], totalInt=0, cumInt=0;
+  while(bal>0.01 && month<2000){
+    const int=bal*r; 
+    let princ=base-int+extra; 
+    if(princ>bal) princ=bal;
+    bal-=princ; 
+    totalInt+=int; 
+    cumInt+=int;
+    sched.push({idx:month+1, payment:princ+int, principal:princ, interest:int, balance:bal, cumInterest:cumInt});
+    month++;
+  }
+  return {base:base+extra, schedule:sched, totalInt};
+}
+
+function amortizeBiweekly(P, rate, years, extra=0){
+  const r=rate/100/26; 
+  const base=monthlyPayment(P, rate/100/12, years*12)/2;
+  let bal=P, idx=0, sched=[], totalInt=0, cumInt=0;
+  while(bal>0.01 && idx<2000){
+    const int=bal*r; 
+    let payment=base+extra; 
+    let princ=payment-int; 
+    if(princ>bal) princ=bal;
+    bal-=princ; 
+    totalInt+=int; 
+    cumInt+=int;
+    sched.push({idx:idx+1,payment:princ+int,principal:princ,interest:int,balance:bal,cumInterest:cumInt});
+    idx++;
+  }
+  return {base:base+extra,schedule:sched,totalInt};
+}
+
+function diffDates(d1,d2){
+  let diff=Math.abs(d2-d1); 
+  let months=Math.floor(diff/(1000*60*60*24*30.44)); // More accurate days per month
+  let years=Math.floor(months/12); 
+  months=months%12; 
+  return years+"y "+months+"m";
+}
+
+function calculate(){
+  const price=parseFloat(document.getElementById('homePrice').value);
+  const down=parseFloat(document.getElementById('downPct').value);
+  const rate=parseFloat(document.getElementById('rate').value);
+  const years=parseInt(document.getElementById('term').value);
+  const tax=parseFloat(document.getElementById('tax').value);
+  const ins=parseFloat(document.getElementById('ins').value);
+  const hoa=parseFloat(document.getElementById('hoa').value);
+  const extraM=parseFloat(document.getElementById('extraMonthly').value) || 0;
+  const extraB=parseFloat(document.getElementById('extraBiweekly').value) || 0;
+  
+  const loan=price*(1-down/100);
+
+  const monthly=amortize(loan, rate, years, extraM);
+  const biweekly=amortizeBiweekly(loan, rate, years, extraB);
+
+  // PMI auto cancel at 80% LTV
+  let pmi=0; 
+  if(down<20){
+    const orig=loan; 
+    for(const row of monthly.schedule){ 
+      if(row.balance<=orig*0.8) break; 
+      pmi+=(orig*0.006/12); 
+    }
+  }
+
+  document.getElementById('monthlyPay').textContent=fmt(monthly.base+tax/12+ins/12+hoa+(pmi/monthly.schedule.length || 0));
+  document.getElementById('biweeklyPay').textContent=fmt(biweekly.base+tax/26+ins/26+hoa/2);
+
+  const start=new Date();
+  const mDate=new Date(start); 
+  mDate.setMonth(mDate.getMonth()+monthly.schedule.length);
+  const bDate=new Date(start); 
+  bDate.setDate(bDate.getDate()+14*biweekly.schedule.length);
+  
+  document.getElementById('monthlyDate').textContent=mDate.toLocaleDateString();
+  document.getElementById('biweeklyDate').textContent=bDate.toLocaleDateString();
+  document.getElementById('diff').textContent=diffDates(mDate,bDate);
+
+  const inc=parseFloat(document.getElementById('income').value);
+  const debts=parseFloat(document.getElementById('debts').value);
+  const frontRatio=(monthly.base+tax/12+ins/12+hoa)/inc;
+  const backRatio=(monthly.base+tax/12+ins/12+hoa+debts)/inc;
+  document.getElementById('affordResult').textContent="Front-end ratio: "+(frontRatio*100).toFixed(1)+"%  |  Back-end ratio: "+(backRatio*100).toFixed(1)+"%";
+
+  // Chart rendering
+  const ctx=document.getElementById("chart").getContext("2d");
+  const chartType=document.getElementById("chartType").value;
+  
+  // Create data for chart - sample every month for readability
+  const maxPeriods = Math.max(monthly.schedule.length, biweekly.schedule.length);
+  const sampleEvery = Math.max(1, Math.floor(maxPeriods / 120)); // Sample to ~120 points max
+  
+  const labels = [];
+  const monthlyData = [];
+  const biweeklyData = [];
+  
+  for(let i = 0; i < maxPeriods; i += sampleEvery) {
+    labels.push(Math.floor(i / 12) + 'y');
+    
+    if(i < monthly.schedule.length) {
+      if(chartType === "balance") {
+        monthlyData.push(monthly.schedule[i].balance);
+      } else {
+        monthlyData.push(monthly.schedule[i].cumInterest);
+      }
+    } else {
+      monthlyData.push(0);
+    }
+    
+    // Convert biweekly index to approximate monthly equivalent
+    const biweeklyIndex = Math.floor(i * 26/12);
+    if(biweeklyIndex < biweekly.schedule.length) {
+      if(chartType === "balance") {
+        biweeklyData.push(biweekly.schedule[biweeklyIndex].balance);
+      } else {
+        biweeklyData.push(biweekly.schedule[biweeklyIndex].cumInterest);
+      }
+    } else {
+      biweeklyData.push(0);
+    }
+  }
+  
+  const label = chartType === "balance" ? "Remaining Balance" : "Cumulative Interest";
+  
+  if(window.chartObj) {
+    window.chartObj.destroy();
+  }
+  
+  window.chartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Monthly " + label,
+          data: monthlyData,
+          borderColor: "#0077cc",
+          backgroundColor: "rgba(0, 119, 204, 0.1)",
+          tension: 0.2,
+          fill: false,
+          pointRadius: 1
+        },
+        {
+          label: "Biweekly " + label,
+          data: biweeklyData,
+          borderColor: "#00aa55",
+          backgroundColor: "rgba(0, 170, 85, 0.1)",
+          tension: 0.2,
+          fill: false,
+          pointRadius: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Years'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: label
+          },
+          ticks: {
+            callback: function(value) {
+              return '$' + (value/1000).toFixed(0) + 'k';
+            }
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
+// Initialize calculator on page load
+document.addEventListener('DOMContentLoaded', function() {
+  calculate();
+});
+</script>
+</body>
+</html>
